@@ -1,0 +1,57 @@
+{
+  "name": "Cosechas Screen Hub",
+  "short_name": "Cosechas",
+  "description": "Sistema de pantallas para tiendas Cosechas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#151515",
+  "theme_color": "#151515",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon_smartv.png",
+      "sizes": "126x126",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-1440.png",
+      "sizes": "1440x1440",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-1920.png",
+      "sizes": "1920x1920",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-4k.png",
+      "sizes": "3840x3840",
+      "type": "image/png"
+    }
+  ]
+}
