@@ -1,6 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { TiendasDashboard } from "@/components/tiendas-dashboard"
-import { ValidacionSimple } from "@/components/validacion-simple"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,7 +10,6 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function TiendasPage() {
   return (
@@ -49,18 +47,9 @@ export default function TiendasPage() {
               </p>
             </div>
 
-            <Tabs defaultValue="dashboard" className="w-full mt-4">
-              <TabsList>
-                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                <TabsTrigger value="validacion">Validar Conexión</TabsTrigger>
-              </TabsList>
-              <TabsContent value="dashboard" className="space-y-6">
-                <TiendasDashboard />
-              </TabsContent>
-              <TabsContent value="validacion" className="space-y-6">
-                <ValidacionSimple />
-              </TabsContent>
-            </Tabs>
+            <div className="w-full mt-6 space-y-6">
+              <TiendasDashboard />
+            </div>
           </div>
         </div>
       </SidebarInset>

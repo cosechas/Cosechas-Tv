@@ -113,28 +113,6 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Cuenta
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Facturación
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notificaciones
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => setTheme("dark")}>
                 <Moon />
                 Oscuro

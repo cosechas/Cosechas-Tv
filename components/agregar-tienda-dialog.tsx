@@ -17,11 +17,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { crearTienda, registrarActividad, getCiudades } from "@/lib/database"
 import type { Tienda, Ciudad } from "@/lib/supabase"
-import PhoneInput from 'react-phone-input-2'
-import 'react-phone-input-2/lib/style.css'
-import './phone-input-custom.css'
 
 interface AgregarTiendaDialogProps {
   abierto: boolean
@@ -44,8 +42,6 @@ export function AgregarTiendaDialog({ abierto, onClose, ciudadId, onTiendaAgrega
   const [loading, setLoading] = useState(false)
   const [ciudades, setCiudades] = useState<Ciudad[]>([])
   const [ciudadSeleccionada, setCiudadSeleccionada] = useState<string>(ciudadId || "")
-  const [prefijo, setPrefijo] = useState("+57")
-  const [telefono, setTelefono] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState<string>('')
 
   useEffect(() => {
@@ -77,14 +73,10 @@ export function AgregarTiendaDialog({ abierto, onClose, ciudadId, onTiendaAgrega
     const formData = new FormData(e.currentTarget)
     const nombre = formData.get("nombre") as string
     const direccion = formData.get("direccion") as string
-    const email = formData.get("email") as string
     const razonSocial = formData.get("razon_social") as string
     const nitCc = formData.get("nit_cc") as string
     const tipoTienda = formData.get("tipo_tienda") as "Local" | "Burbuja"
     const pantallas = Number.parseInt(formData.get("pantallas") as string) || 0
-
-    // El teléfono ya incluye el prefijo y formato internacional
-    const telefonoCompleto = telefono
 
     try {
       const nuevaTienda = await crearTienda({
@@ -92,8 +84,6 @@ export function AgregarTiendaDialog({ abierto, onClose, ciudadId, onTiendaAgrega
         codigo: "", // Se generará automáticamente en el backend
         ciudad_id: ciudadSeleccionada,
         direccion: direccion || undefined,
-        telefono: telefonoCompleto || undefined,
-        email: email || undefined,
         razon_social: razonSocial || undefined,
         nit_cc: nitCc || undefined,
         tipo_tienda: tipoTienda || "Local",
@@ -126,7 +116,7 @@ export function AgregarTiendaDialog({ abierto, onClose, ciudadId, onTiendaAgrega
 
   return (
     <Dialog open={abierto} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {codigoGenerado ? "Tienda Creada Exitosamente" : "Agregar Nueva Tienda"}
@@ -139,8 +129,9 @@ export function AgregarTiendaDialog({ abierto, onClose, ciudadId, onTiendaAgrega
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            {/* Información básica */}
+          <ScrollArea className="h-[400px] w-full rounded-md border p-3 shadow-inner bg-muted/10 overflow-hidden">
+            <div className="grid gap-4 pr-3">
+              {/* Información básica */}
             <div className="grid gap-2">
               <Label htmlFor="nombre">Nombre de la tienda *</Label>
               <Input id="nombre" name="nombre" placeholder="Ej: Tienda Centro Comercial" required />
@@ -216,38 +207,14 @@ export function AgregarTiendaDialog({ abierto, onClose, ciudadId, onTiendaAgrega
               <Textarea id="direccion" name="direccion" placeholder="Dirección completa de la tienda" rows={2} />
             </div>
 
-            {/* Contacto */}
-            <div className="grid grid-cols-[2fr,1fr] gap-4">
-              <div className="grid gap-2 col-span-1">
-                <Label htmlFor="telefono">Teléfono</Label>
-                <PhoneInput
-                  country={'co'}
-                  value={telefono}
-                  onChange={setTelefono}
-                  inputProps={{ name: 'telefono', required: false }}
-                  inputClass="custom-phone-input"
-                  buttonClass="custom-phone-btn"
-                  dropdownClass="!z-[1000]"
-                  enableSearch={true}
-                  disableDropdown={false}
-                  masks={{ co: '... ... ....' }}
-                  onlyCountries={['co', 'us', 'es', 'mx', 'ar']}
-                  countryCodeEditable={true}
-                  specialLabel=""
-                />
-              </div>
-              <div className="grid gap-2 col-span-1">
-                <Label htmlFor="pantallas">Pantallas</Label>
-                <Input id="pantallas" name="pantallas" type="number" min="0" placeholder="0" className="max-w-[120px] w-full" />
-              </div>
-            </div>
-
+            {/* Opciones */}
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="tienda@ejemplo.com" />
+              <Label htmlFor="pantallas">Pantallas</Label>
+              <Input id="pantallas" name="pantallas" type="number" min="0" placeholder="0" className="max-w-[120px] w-full" />
             </div>
           </div>
-          <DialogFooter>
+          </ScrollArea>
+          <DialogFooter className="pt-4">
             {codigoGenerado ? (
               <Button type="button" onClick={onClose} className="w-full">
                 Cerrar

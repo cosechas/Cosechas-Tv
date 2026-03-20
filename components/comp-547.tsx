@@ -1,6 +1,10 @@
 "use client";
 
-import { AlertCircleIcon, ImageIcon, UploadIcon, Trash2Icon, RefreshCw } from "lucide-react";
+import { AlertCircleIcon, ImageIcon, UploadIcon, Trash2Icon, RefreshCw, X } from "lucide-react";
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 import {
   formatBytes,
@@ -24,11 +28,17 @@ export default function Component({
   onUpload?: (files: File[]) => Promise<void>;
 }) {
   const maxSizeMB = 100;
-  const maxSize = maxSizeMB * 1024 * 1024; // 5MB default
-  const maxFiles = 6;
+  const maxSize = maxSizeMB * 1024 * 1024; // 100MB default
+  const maxFiles = 20;
 
   const [replacingId, setReplacingId] = useState<string | null>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
+
+  const [pendingUploadFiles, setPendingUploadFiles] = useState<File[]>([]);
+  const [fileNames, setFileNames] = useState<Record<string, string>>({});
+  const [pendingPreviews, setPendingPreviews] = useState<Record<string, string>>({});
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [
     { files, isDragging, errors },
@@ -50,18 +60,73 @@ export default function Component({
     maxFiles,
     maxSize,
     multiple: true,
-    onFilesAdded: async (addedFiles) => {
+    onFilesAdded: (addedFiles) => {
       if (onUpload) {
         const filesToUpload = addedFiles
           .map((f) => (f.file instanceof File ? f.file : null))
           .filter((f): f is File => f !== null);
         
         if (filesToUpload.length > 0) {
-          await onUpload(filesToUpload);
+          setPendingUploadFiles(filesToUpload);
+          const initialNames: Record<string, string> = {};
+          const previews: Record<string, string> = {};
+
+          filesToUpload.forEach(f => {
+            const ext = f.name.lastIndexOf('.') > 0 ? f.name.substring(f.name.lastIndexOf('.')) : '';
+            const nameWithoutExt = f.name.replace(ext, '') || f.name;
+            initialNames[f.name] = nameWithoutExt; 
+            previews[f.name] = URL.createObjectURL(f);
+          });
+          setFileNames(initialNames);
+          setPendingPreviews(previews);
+          setIsDialogOpen(true);
         }
       }
     },
   });
+
+  const handleConfirmUpload = async () => {
+    if (!onUpload) return;
+    setIsUploading(true);
+    try {
+      const renamedFiles = pendingUploadFiles.map(file => {
+        const ext = file.name.substring(file.name.lastIndexOf('.'));
+        const newBaseName = fileNames[file.name] || file.name.replace(ext, '');
+        const finalName = `${newBaseName}${ext}`;
+        return new File([file], finalName, { type: file.type });
+      });
+      await onUpload(renamedFiles);
+      setPendingUploadFiles([]);
+      setIsDialogOpen(false);
+      
+      // Cleanup previews
+      Object.values(pendingPreviews).forEach(url => URL.revokeObjectURL(url));
+      setPendingPreviews({});
+      
+      clearFiles();
+    } catch (error) {
+      console.error("Error al subir archivos:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCancelUpload = () => {
+    setIsDialogOpen(false);
+    setPendingUploadFiles([]);
+    
+    // Cleanup previews
+    Object.values(pendingPreviews).forEach(url => URL.revokeObjectURL(url));
+    setPendingPreviews({});
+    
+    // Remove the pending files from the UI list if cancelled
+    const filesToRemove = pendingUploadFiles.map(f => {
+      const matchingFile = files.find(stateFile => stateFile.file.name === f.name && stateFile.file.size === f.size);
+      return matchingFile?.id;
+    }).filter(Boolean) as string[];
+    
+    filesToRemove.forEach(id => removeFile(id));
+  };
 
   useEffect(() => {
     setFiles(defaultFiles);
@@ -129,7 +194,7 @@ export default function Component({
           </p>
           <Button className="mt-4" onClick={openFileDialog} variant="outline">
             <UploadIcon aria-hidden="true" className="-ms-1 opacity-60" />
-            Select images
+            Subir imágenes
           </Button>
         </div>
       </div>
@@ -201,15 +266,6 @@ export default function Component({
               </div>
             </div>
           ))}
-
-          {/* Remove all files button */}
-          {files.length > 1 && (
-            <div>
-              <Button onClick={clearFiles} size="sm" variant="outline">
-                Remove all files
-              </Button>
-            </div>
-          )}
         </div>
       )}
 
@@ -218,14 +274,47 @@ export default function Component({
         className="mt-2 text-center text-muted-foreground text-xs"
         role="region"
       >
-        Multiple image uploader w/ image list ∙{" "}
-        <a
-          className="underline hover:text-foreground"
-          href="https://github.com/cosscom/coss/blob/main/apps/origin/docs/use-file-upload.md"
-        >
-          API
-        </a>
+        Agrega tus archivos y dales un formato amigable.
       </p>
+
+      {/* Dialog for renaming files */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCancelUpload()}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nombrar contenido</DialogTitle>
+            <DialogDescription>
+              Por favor asigne un nombre a los archivos antes de subirlos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {pendingUploadFiles.map((file, index) => {
+               const previewUrl = pendingPreviews[file.name] || files.find(f => f.file.name === file.name && f.file.size === file.size)?.preview;
+               
+               return (
+                <div key={`${file.name}-${index}`} className="flex items-center gap-3 space-y-0">
+                  {previewUrl && (
+                    <img src={previewUrl} alt={file.name} className="h-12 w-12 object-cover rounded-md border" />
+                  )}
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs text-muted-foreground truncate block max-w-[250px]">{file.name}</Label>
+                    <Input 
+                      value={fileNames[file.name] || ""} 
+                      onChange={(e) => setFileNames({...fileNames, [file.name]: e.target.value})} 
+                      placeholder="Ej: Promo Verano"
+                    />
+                  </div>
+                </div>
+               );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelUpload} disabled={isUploading}>Cancelar</Button>
+            <Button onClick={handleConfirmUpload} disabled={isUploading}>
+              {isUploading ? "Subiendo..." : "Confirmar subida"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

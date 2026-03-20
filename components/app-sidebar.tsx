@@ -49,14 +49,7 @@ const data = {
           title: "Resumen General",
           url: "/dashboard/resumen",
         },
-        {
-          title: "Estadisticas",
-          url: "#",
-        },
-        {
-          title: "Actividad Reciente",
-          url: "#",
-        },
+
       ],
     },
     {
@@ -73,15 +66,7 @@ const data = {
           url: "#",
         },
         {
-          title: "Plantillas",
-          url: "#",
-        },
-        {
-          title: "Biblioteca",
-          url: "#",
-        },
-        {
-          title: "Upload",
+          title: "Subir contenido",
           url: "/upload",
         },
       ],
@@ -102,10 +87,6 @@ const data = {
         title: "Configuracion",
         url: "#",
       },
-      {
-        title: "Mantenimiento",
-        url: "#",
-      },
     ],
   },
     {
@@ -115,34 +96,11 @@ const data = {
       items: [
         {
           title: "Ciudades",
-          url: "#",
+          url: "/grupos/ciudades",
         },
         {
           title: "Tiendas",
           url: "/grupos/tiendas",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
         },
       ],
     },

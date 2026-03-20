@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { actualizarTienda, registrarActividad, getCiudades } from "@/lib/database"
 import type { Tienda, Ciudad } from "@/lib/supabase"
 
@@ -58,8 +59,6 @@ export function EditarTiendaDialog({ abierto, onClose, tienda, onTiendaActualiza
     const codigo = formData.get("codigo") as string
     const ciudadId = formData.get("ciudad") as string
     const direccion = formData.get("direccion") as string
-    const telefono = formData.get("telefono") as string
-    const email = formData.get("email") as string
     const razonSocial = formData.get("razon_social") as string
     const nitCc = formData.get("nit_cc") as string
     const tipoTienda = formData.get("tipo_tienda") as "Local" | "Burbuja"
@@ -72,8 +71,6 @@ export function EditarTiendaDialog({ abierto, onClose, tienda, onTiendaActualiza
         codigo,
         ciudad_id: ciudadId,
         direccion: direccion || undefined,
-        telefono: telefono || undefined,
-        email: email || undefined,
         razon_social: razonSocial || undefined,
         nit_cc: nitCc || undefined,
         tipo_tienda: tipoTienda,
@@ -104,14 +101,15 @@ export function EditarTiendaDialog({ abierto, onClose, tienda, onTiendaActualiza
 
   return (
     <Dialog open={abierto} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Editar Tienda</DialogTitle>
           <DialogDescription>Modifica la información de la tienda.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            {/* Información básica */}
+          <ScrollArea className="h-[420px] w-full rounded-md border p-3 shadow-inner bg-muted/10 overflow-hidden">
+            <div className="grid gap-4 pr-3">
+              {/* Información básica */}
             <div className="grid gap-2">
               <Label htmlFor="nombre">Nombre de la tienda *</Label>
               <Input id="nombre" name="nombre" defaultValue={tienda.nombre} required />
@@ -185,38 +183,17 @@ export function EditarTiendaDialog({ abierto, onClose, tienda, onTiendaActualiza
               />
             </div>
 
-            {/* Contacto */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="telefono">Teléfono</Label>
-                <Input
-                  id="telefono"
-                  name="telefono"
-                  defaultValue={tienda.telefono || ""}
-                  placeholder="Ej: +57 300 123 4567"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="pantallas">Pantallas</Label>
-                <Input
-                  id="pantallas"
-                  name="pantallas"
-                  type="number"
-                  min="0"
-                  defaultValue={tienda.pantallas_conectadas}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
+            {/* Opciones */}
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="pantallas">Pantallas</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                defaultValue={tienda.email || ""}
-                placeholder="tienda@ejemplo.com"
+                id="pantallas"
+                name="pantallas"
+                type="number"
+                min="0"
+                defaultValue={tienda.pantallas_conectadas}
+                placeholder="0"
+                className="max-w-[120px] w-full"
               />
             </div>
 
@@ -225,7 +202,8 @@ export function EditarTiendaDialog({ abierto, onClose, tienda, onTiendaActualiza
               <Label htmlFor="activa">Tienda activa</Label>
             </div>
           </div>
-          <DialogFooter>
+          </ScrollArea>
+          <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>

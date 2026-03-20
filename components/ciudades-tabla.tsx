@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MapPin, Edit, Trash2, MoreHorizontal, Plus } from "lucide-react"
+import { MapPin, Edit, Trash2, MoreHorizontal, Plus, Building, Monitor } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -65,7 +65,7 @@ export function CiudadesTabla({
         </div>
       )}
 
-      <div className="rounded-md border">
+      <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -95,33 +95,54 @@ export function CiudadesTabla({
                     />
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <div className="font-medium">{ciudad.nombre}</div>
-                        <div className="text-sm text-muted-foreground">Código: {ciudad.codigo}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-inner border border-primary/10 shrink-0">
+                        <MapPin className="h-5 w-5" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[15px]">{ciudad.nombre}</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded-md">
+                            {ciudad.codigo}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">{estadisticas.total_tiendas}</div>
-                        <div className="text-xs text-muted-foreground">Tiendas</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-600">{estadisticas.total_pantallas}</div>
-                        <div className="text-xs text-muted-foreground">Pantallas</div>
-                      </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 border-blue-200/50">
+                        <Building className="w-3 h-3 mr-1" />
+                        {estadisticas.total_tiendas} Tiendas
+                      </Badge>
+                      <Badge variant="secondary" className="bg-purple-500/10 text-purple-700 hover:bg-purple-500/20 border-purple-200/50">
+                        <Monitor className="w-3 h-3 mr-1" />
+                        {estadisticas.total_pantallas} Pantallas
+                      </Badge>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={`${getStatusColor(ciudad.activa)} text-white`}>
-                      {getStatusText(ciudad.activa)}
-                    </Badge>
+                    <div className="flex items-center">
+                      {ciudad.activa ? (
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20 gap-1.5">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          Activa
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-muted text-muted-foreground gap-1.5 border-transparent">
+                          <span className="h-2 w-2 rounded-full bg-muted-foreground/50"></span>
+                          Inactiva
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">{new Date(ciudad.created_at).toLocaleDateString()}</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {new Date(ciudad.created_at).toLocaleDateString()}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

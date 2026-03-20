@@ -350,28 +350,31 @@ export async function getEstadisticas(): Promise<Estadisticas> {
 
 export async function getEstadisticasPorCiudad() {
   try {
-    const { data, error } = await supabase
+    // 1. Conseguir ciudades activas
+    const { data: ciudades, error: ciudadesError } = await supabase
       .from("ciudades")
-      .select(`
-        id,
-        nombre,
-        codigo,
-        tiendas!inner (
-          id,
-          pantallas_conectadas,
-          activa
-        )
-      `)
+      .select("id, nombre, codigo")
       .eq("activa", true)
-      .eq("tiendas.activa", true)
 
-    if (error) throw error
+    if (ciudadesError) throw ciudadesError
 
-    return (data || []).map((ciudad) => ({
-      ...ciudad,
-      total_tiendas: ciudad.tiendas.length,
-      total_pantallas: ciudad.tiendas.reduce((sum, tienda) => sum + tienda.pantallas_conectadas, 0),
-    }))
+    // 2. Conseguir todas las tiendas activas
+    const { data: tiendas, error: tiendasError } = await supabase
+      .from("tiendas")
+      .select("id, ciudad_id, pantallas_conectadas")
+      .eq("activa", true)
+
+    if (tiendasError) throw tiendasError
+
+    // 3. Mapear y sumar
+    return (ciudades || []).map((ciudad) => {
+      const tiendasCiudad = (tiendas || []).filter((t) => t.ciudad_id === ciudad.id)
+      return {
+        ...ciudad,
+        total_tiendas: tiendasCiudad.length,
+        total_pantallas: tiendasCiudad.reduce((sum, tienda) => sum + (tienda.pantallas_conectadas || 0), 0),
+      }
+    })
   } catch (error) {
     console.error("Error en getEstadisticasPorCiudad:", error)
     return []

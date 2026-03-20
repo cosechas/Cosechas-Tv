@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Building, MapPin, Monitor, Edit, Trash2, Phone, Mail, MoreHorizontal } from "lucide-react"
+import { Building, MapPin, Monitor, Edit, Trash2, MoreHorizontal } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,12 @@ const getStatusColor = (activa: boolean) => {
 
 const getStatusText = (activa: boolean) => {
   return activa ? "Activa" : "Inactiva"
+}
+
+const TIEMPO_LIMITE_MS = 360000; // 6 minutos
+const isTiendaOnline = (ultima_conexion?: string) => {
+  if (!ultima_conexion) return false;
+  return new Date().getTime() - new Date(ultima_conexion).getTime() < TIEMPO_LIMITE_MS;
 }
 
 interface TiendasTablaProps {
@@ -140,12 +146,9 @@ export function TiendasTabla({ tiendas, onTiendaActualizada, onTiendaEliminada }
     const data = tiendas.map((t) => ({
       Nombre: t.nombre,
       Código: t.codigo,
-      Tipo: t.tipo_tienda,
       "Razón social": t.razon_social || "",
-      "NIT/C.C": t.nit_cc || "",
+      Conexión: isTiendaOnline(t.ultima_conexion) ? "En línea" : "Desconectada",
       Ciudad: t.ciudades?.nombre || "",
-      Teléfono: t.telefono || "",
-      Correo: t.email || "",
       Pantallas: t.pantallas_conectadas,
       Estado: t.activa ? "Activa" : "Inactiva",
       "Fecha Creación": new Date(t.created_at).toLocaleDateString(),
@@ -176,86 +179,121 @@ export function TiendasTabla({ tiendas, onTiendaActualizada, onTiendaEliminada }
          className="w-full space-y-2.5 overflow-auto"
         >
 
-        <div className="overflow-hidden rounded-lg border border-border bg-background">
-          <Table >
-            <TableHeader>
-              <TableRow>
+        <div className="overflow-hidden rounded-xl shadow-sm border border-border/70 bg-card">
+          <Table>
+            <TableHeader className="bg-muted/40 text-xs uppercase tracking-wider">
+              <TableRow className="hover:bg-transparent">
                 <TableHead className="w-12 text-center align-middle">
                   <Checkbox
+                    className="border-muted-foreground/40"
                     checked={tiendasSeleccionadas.length === tiendas.length && tiendas.length > 0}
                     onCheckedChange={handleSeleccionarTodas}
                   />
                 </TableHead>
-                <TableHead className="min-w-[140px] text-left text-sm whitespace-nowrap">Nombre</TableHead>
-                <TableHead className="w-[100px] text-left text-sm whitespace-nowrap">Código</TableHead>
-                <TableHead className="w-[100px] text-left text-sm whitespace-nowrap">Tipo</TableHead>
-                <TableHead className="min-w-[160px] max-w-[200px] text-left text-sm whitespace-nowrap">Razón social</TableHead>
-                <TableHead className="w-[110px] text-left text-sm whitespace-nowrap">NIT/C.C</TableHead>
-                <TableHead className="min-w-[120px] text-left text-sm whitespace-nowrap">Ciudad</TableHead>
-                <TableHead className="w-[120px] text-left text-sm whitespace-nowrap">Teléfono</TableHead>
-                <TableHead className="min-w-[160px] max-w-[200px] text-left text-sm whitespace-nowrap">Correo</TableHead>
-                <TableHead className="w-[110px] text-center text-sm whitespace-nowrap">Pantallas</TableHead>
-                <TableHead className="w-[90px] text-center text-sm whitespace-nowrap">Estado</TableHead>
-                <TableHead className="w-[120px] text-center text-sm whitespace-nowrap">Fecha Creación</TableHead>
-                <TableHead className="w-12 text-center align-middle">Acciones</TableHead>
+                <TableHead className="min-w-[150px] font-semibold text-foreground">Nombre</TableHead>
+                <TableHead className="w-[110px] text-center font-semibold text-foreground">Código</TableHead>
+                <TableHead className="min-w-[180px] max-w-[220px] font-semibold text-foreground">Razón social</TableHead>
+                <TableHead className="w-[130px] text-center font-semibold text-foreground">Conexión</TableHead>
+                <TableHead className="min-w-[130px] font-semibold text-foreground">Ciudad</TableHead>
+                <TableHead className="w-[100px] text-center font-semibold text-foreground">Pantallas</TableHead>
+                <TableHead className="w-[100px] text-center font-semibold text-foreground">Estado</TableHead>
+                <TableHead className="w-[110px] text-center font-semibold text-foreground">Fecha Reg.</TableHead>
+                <TableHead className="w-14 text-center">Acciones</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="[&_td:first-child]:rounded-l-lg [&_td:last-child]:rounded-r-lg">
+            <TableBody className="[&_td]:py-3">
               {tiendas.map((tienda) => (
-                <TableRow key={tienda.id} className="align-middle">
+                <TableRow key={tienda.id} className="align-middle hover:bg-muted/40 transition-colors">
                   <TableCell className="text-center align-middle">
                     <Checkbox
                       checked={tiendasSeleccionadas.includes(tienda.id)}
                       onCheckedChange={(checked) => handleSeleccionarTienda(tienda.id, checked as boolean)}
                     />
                   </TableCell>
-                  <TableCell className="text-sm whitespace-nowrap max-w-[160px] truncate">{tienda.nombre}</TableCell>
-                  <TableCell className="text-sm font-mono whitespace-nowrap">{tienda.codigo}</TableCell>
-                  <TableCell className="text-sm whitespace-nowrap">{tienda.tipo_tienda}</TableCell>
-                  <TableCell className="text-sm max-w-[180px] truncate whitespace-nowrap">
-                    {tienda.razon_social || <span className="text-muted-foreground">No registrado</span>}
+
+                  {/* Nombre */}
+                  <TableCell>
+                    <span className="font-semibold text-foreground text-sm max-w-[160px] truncate block">{tienda.nombre}</span>
                   </TableCell>
-                  <TableCell className="text-sm font-mono whitespace-nowrap">
-                    {tienda.nit_cc ? (
-                      <span>{tienda.nit_cc}</span>
+
+                  {/* Código */}
+                  <TableCell className="text-center">
+                    <Badge variant="outline" className="font-mono text-[11px] px-1.5 py-0 border-muted-foreground/30 text-muted-foreground bg-accent/30 rounded-md">
+                      {tienda.codigo}
+                    </Badge>
+                  </TableCell>
+
+                  {/* Razón social */}
+                  <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate" title={tienda.razon_social || "No registrado"}>
+                    {tienda.razon_social || <span className="italic opacity-60">Sin registro</span>}
+                  </TableCell>
+
+                  {/* Conexión */}
+                  <TableCell className="text-center">
+                    {isTiendaOnline(tienda.ultima_conexion) ? (
+                      <div className="inline-flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full text-xs font-semibold border border-emerald-500/20 shadow-sm mx-auto">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        En línea
+                      </div>
                     ) : (
-                      <span className="text-muted-foreground">No registrado</span>
+                      <div className="inline-flex items-center justify-center gap-1.5 text-muted-foreground bg-muted hover:bg-accent px-2.5 py-1 rounded-full text-xs font-semibold border border-border shadow-sm transition-colors mx-auto">
+                        <span className="h-2 w-2 rounded-full bg-muted-foreground/50"></span>
+                        Desconectada
+                      </div>
                     )}
                   </TableCell>
-                  <TableCell className="text-sm whitespace-nowrap max-w-[120px] truncate">{tienda.ciudades?.nombre}</TableCell>
-                  <TableCell className="text-sm whitespace-nowrap max-w-[120px] truncate">{tienda.telefono || <span className="text-muted-foreground">Sin teléfono</span>}</TableCell>
-                  <TableCell className="text-sm whitespace-nowrap max-w-[180px] truncate">{tienda.email || <span className="text-muted-foreground">Sin correo</span>}</TableCell>
-                  <TableCell className="text-center align-middle">
-                    <div className="flex items-center justify-center gap-2">
-                      <Monitor className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">{tienda.pantallas_conectadas}</span>
+
+                  {/* Ciudad */}
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 text-sm font-medium">
+                      <MapPin className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                      <span className="truncate max-w-[120px] text-foreground/80">{tienda.ciudades?.nombre}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center align-middle">
-                    <Badge className={`${getStatusColor(tienda.activa)} text-white text-xs px-2 py-1 whitespace-nowrap`}>{getStatusText(tienda.activa)}</Badge>
+
+                  {/* Pantallas */}
+                  <TableCell className="text-center">
+                    <div className="inline-flex items-center justify-center gap-1.5 bg-accent/40 text-accent-foreground px-3 py-1 rounded-lg border border-border/50 shadow-sm">
+                      <Monitor className="h-3.5 w-3.5 text-primary opacity-80" />
+                      <span className="font-semibold text-sm">{tienda.pantallas_conectadas}</span>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-center align-middle text-xs whitespace-nowrap">
-                    <span>{new Date(tienda.created_at).toLocaleDateString()}</span>
+
+                  {/* Estado (Activa/Inactiva) */}
+                  <TableCell className="text-center">
+                    <Badge variant={tienda.activa ? "outline" : "secondary"} className={`text-[10px] uppercase tracking-wider px-1.5 py-0 h-5 border-transparent ${tienda.activa ? 'text-blue-600 bg-blue-500/10 dark:text-blue-400' : 'text-muted-foreground'}`}>
+                      {getStatusText(tienda.activa)}
+                    </Badge>
                   </TableCell>
-                  <TableCell className="text-center align-middle">
+
+                  {/* Registro */}
+                  <TableCell className="text-center text-xs text-muted-foreground font-medium">
+                    {new Date(tienda.created_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  </TableCell>
+
+                  {/* Acciones */}
+                  <TableCell className="text-center">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditarTienda(tienda)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
+                      <DropdownMenuContent align="end" className="w-[160px]">
+                        <DropdownMenuItem onClick={() => handleEditarTienda(tienda)} className="cursor-pointer py-2">
+                          <Edit className="mr-2 h-4 w-4 text-primary" />
+                          <span className="font-medium text-sm">Editar Tienda</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600"
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer py-2"
                           onClick={() => handleEliminarTienda(tienda)}
                           disabled={eliminandoIndividual === tienda.id}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          {eliminandoIndividual === tienda.id ? "Eliminando..." : "Eliminar"}
+                          <span className="font-medium text-sm">{eliminandoIndividual === tienda.id ? "Eliminando..." : "Eliminar Tienda"}</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
