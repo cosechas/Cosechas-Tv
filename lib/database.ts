@@ -77,6 +77,52 @@ export async function getCiudades(): Promise<Ciudad[]> {
   }
 }
 
+export async function crearCiudad(ciudad: Omit<Ciudad, "id" | "created_at" | "updated_at">): Promise<Ciudad> {
+  try {
+    const { data, error } = await supabase.from("ciudades").insert([ciudad]).select().single()
+
+    if (error) {
+      console.error("Error al crear ciudad:", error)
+      throw new Error(`Error al crear ciudad: ${error.message}`)
+    }
+
+    return data
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Failed to fetch")) {
+      throw new Error(
+        "No se puede conectar con la base de datos. Verifica tu conexión a internet y las credenciales de Supabase.",
+      )
+    }
+    throw error
+  }
+}
+
+// Funciones para tiendas con mejor manejo de errores
+export async function actualizarCiudad(id: string, ciudad: Partial<Omit<Ciudad, "id" | "created_at" | "updated_at">>): Promise<Ciudad> {
+  try {
+    const { data, error } = await supabase
+      .from("ciudades")
+      .update(ciudad)
+      .eq("id", id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error al actualizar ciudad:", error)
+      throw new Error(`Error al actualizar ciudad: ${error.message}`)
+    }
+
+    return data
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Failed to fetch")) {
+      throw new Error(
+        "No se puede conectar con la base de datos. Verifica tu conexión a internet y las credenciales de Supabase.",
+      )
+    }
+    throw error
+  }
+}
+
 // Funciones para tiendas con mejor manejo de errores
 export async function getTiendas(): Promise<Tienda[]> {
   try {

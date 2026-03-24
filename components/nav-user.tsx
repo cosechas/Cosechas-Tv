@@ -1,23 +1,16 @@
 "use client"
 
 import {
-  BadgeCheck,
-  Bell,
   ChevronsUpDown,
   CreditCard,
+  UserCog,
   LogOut,
-  Sparkles,
   Sun,
   Moon,
   Monitor,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,10 +30,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import BoringAvatar from "boring-avatars";
+import { UserManagementDialog } from "./user-management-dialog";
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const [user, setUser] = useState<{ name: string; email: string; avatar: string } | null>(null);
+  const [showUserManagement, setShowUserManagement] = useState(false);
   const router = useRouter();
   const { setTheme } = useTheme();
 
@@ -64,7 +59,8 @@ export function NavUser() {
   if (!user) return <div className="p-4 text-xs text-red-500">No hay usuario autenticado</div>;
 
   return (
-    <SidebarMenu>
+    <>
+      <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -113,6 +109,13 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem onSelect={() => setShowUserManagement(true)}>
+                <UserCog />
+                Configuracion
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </DropdownMenuGroup>  
+            <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => setTheme("dark")}>
                 <Moon />
                 Oscuro
@@ -135,5 +138,7 @@ export function NavUser() {
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
+    <UserManagementDialog open={showUserManagement} onOpenChange={setShowUserManagement} />
+    </>
   )
 }

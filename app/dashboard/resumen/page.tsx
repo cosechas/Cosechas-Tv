@@ -41,6 +41,8 @@ import {
   Box,
   View,
   X,
+  RotateCcw,
+  RotateCw,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -111,6 +113,36 @@ function groupByZona(videos: any[]): Record<string, any[]> {
   }, {});
 }
 
+async function rotateImageFile(imageUrl: string, direction: 'left' | 'right', fileName: string, fileType: string): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject("Canvas context not available");
+
+      const angle = direction === 'right' ? 90 : -90;
+      
+      canvas.width = img.naturalHeight;
+      canvas.height = img.naturalWidth;
+
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((angle * Math.PI) / 180);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+
+      canvas.toBlob((blob) => {
+        if (!blob) return reject("Error al generar imagen rotada");
+        resolve(new File([blob], fileName, { type: fileType || "image/jpeg" }));
+      }, fileType || "image/jpeg", 1.0);
+    };
+    img.onerror = () => reject("Error de CORS al cargar la imagen para rotar.");
+    
+    // Add timestamp to bypass browser cache
+    img.src = imageUrl.includes("?") ? `${imageUrl}&t=${Date.now()}` : `${imageUrl}?t=${Date.now()}`;
+  });
+}
+
 export default function ResumenPage() {
   const [videos, setVideos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -133,6 +165,7 @@ export default function ResumenPage() {
   const [isAvatarSheetOpen, setIsAvatarSheetOpen] = useState(false);
   const [avatarSheetZoneId, setAvatarSheetZoneId] = useState<string | null>(null);
   const [tiendas, setTiendas] = useState<Tienda[]>([]);
+  const [isRotating, setIsRotating] = useState(false);
 
   useEffect(() => {
     if (avatarSheetZoneId) {
@@ -349,6 +382,43 @@ export default function ResumenPage() {
         console.error("Upload error:", error);
         toast.error(`Error subiendo ${file.name}: ${error.message}`);
       }
+    }
+  };
+
+  const handleRotate = async (direction: 'left' | 'right') => {
+    if (!previewUrl || !selectedZone || isRotating) return;
+    const videosZona = videosPorZona[selectedZone];
+    if (!videosZona) return;
+    
+    const video = videosZona.find((v: any) => v.cloudinary_url === previewUrl);
+    if (!video) return;
+
+    setIsRotating(true);
+    const toastId = toast.loading("Rotando imagen y guardando...");
+
+    try {
+      const ext = previewUrl.split('.').pop()?.split('?')[0] || 'jpg';
+      const fileType = ext === 'png' ? 'image/png' : 'image/jpeg';
+      const fileName = `rotated-${Date.now()}.${ext}`;
+
+      const rotatedFile = await rotateImageFile(previewUrl, direction, fileName, fileType);
+      
+      await handleReplaceById(video.id, rotatedFile);
+      
+      // Update preview to the new URL directly
+      const updatedVideo = videosPorZona[selectedZone]?.find((v: any) => v.id === video.id);
+      if (updatedVideo && updatedVideo.cloudinary_url) {
+        setPreviewUrl(updatedVideo.cloudinary_url);
+      } else {
+        // Fallback close preview if wait failed
+        setPreviewUrl(null);
+      }
+      toast.success("Imagen rotada correctamente", { id: toastId });
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.message || "Error al rotar la imagen por permisos o formato.", { id: toastId });
+    } finally {
+      setIsRotating(false);
     }
   };
 
@@ -588,15 +658,6 @@ export default function ResumenPage() {
                                 }
                               );
                             }}> <Edit className="mr-2 h-4 w-4" /> Editar </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => {
-                              toast(
-                                "Opción no disponible 🙅🏽‍♂️",
-                                {
-                                  description: "La programación estará disponible en la versión 2.",
-                                  duration: 6000,
-                                }
-                              );
-                            }}> <Settings className="mr-2 h-4 w-4" /> Programar </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
                                 const url = video.cloudinary_url.replace(
@@ -714,56 +775,76 @@ export default function ResumenPage() {
         </ScrollArea>
       </SidebarInset>
       <Sheet open={!!selectedZone} onOpenChange={(open) => { if(!open) { setSelectedZone(null); setPreviewUrl(null); } }}>
-        <SheetContent className="sm:max-w-l flex flex-col overflow-visible">
+        <SheetContent className="sm:max-w-md flex flex-col overflow-visible h-full p-0">
           {previewUrl && (
-            <div className="absolute top-1/2 right-full mr-4 -translate-y-1/2 z-50 bg-black p-1 rounded-lg shadow-2xl animate-in fade-in zoom-in duration-300">
-              <img 
-                src={previewUrl} 
-                alt="Vista previa" 
-                className="max-w-[500px] max-h-[500px] rounded-md object-contain"
-              />
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white text-black hover:bg-gray-200 shadow-md"
-                onClick={() => setPreviewUrl(null)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+            <div className="absolute top-1/2 right-full mr-4 -translate-y-1/2 z-50 flex flex-col items-center gap-3">
+              <div className="bg-black p-1 rounded-lg shadow-2xl animate-in fade-in zoom-in duration-300 relative">
+                <img 
+                  src={previewUrl} 
+                  alt="Vista previa" 
+                  className="max-w-[400px] max-h-[80vh] rounded-md object-contain transition-all duration-300"
+                />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-white text-black hover:bg-gray-200 shadow-xl border border-gray-100 disabled:opacity-50"
+                  onClick={() => setPreviewUrl(null)}
+                  disabled={isRotating}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" className="shadow-xl px-4" onClick={() => handleRotate('left')} disabled={isRotating}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Izquierda
+                </Button>
+                <Button variant="secondary" className="shadow-xl px-4" onClick={() => handleRotate('right')} disabled={isRotating}>
+                  <RotateCw className="h-4 w-4 mr-2" />
+                  Derecha
+                </Button>
+              </div>
             </div>
           )}
-          <SheetHeader>
-            <SheetTitle>
-              {selectedZone && ciudadesMap[selectedZone] ? ciudadesMap[selectedZone] : "Detalles de la Zona"}
-            </SheetTitle>
-            <SheetDescription>
-              Información adicional de la zona seleccionada.
-            </SheetDescription>
-          </SheetHeader>
-          <ScrollArea className="mt-4 flex-1 h-full">
-            <Comp547 
-              key={`${selectedZone}-${activeTab}`}
-              onPreview={(url) => setPreviewUrl(url)} 
-              onDelete={handleDeleteById}
-              onReplace={handleReplaceById}
-              onUpload={handleUpload}
-              defaultFiles={
-                selectedZone && videosPorZona[selectedZone] 
-                ? videosPorZona[selectedZone]
-                    .filter((v: any) => activeTab === 'left' ? v.categoria === 'precios' : v.categoria === 'publicidad')
-                    .map((v: any) => ({
-                    id: v.id,
-                    name: v.titulo || "Imagen",
-                    size: 0,
-                    type: "image/jpeg",
-                    url: v.cloudinary_url,
-                    uploadedAt: v.created_at
-                  }))
-                : []
-              }
-            />
-          </ScrollArea>
-          <div className="mt-4 flex flex-col gap-2">
+          
+          <div className="px-6 pt-6 pb-2 shrink-0">
+            <SheetHeader>
+              <SheetTitle>
+                {selectedZone && ciudadesMap[selectedZone] ? ciudadesMap[selectedZone] : "Detalles de la Zona"}
+              </SheetTitle>
+              <SheetDescription>
+                Información adicional de la zona seleccionada.
+              </SheetDescription>
+            </SheetHeader>
+          </div>
+          
+          <div className="flex-1 overflow-hidden px-6">
+            <ScrollArea className="h-full w-full pr-4 -mr-4">
+              <Comp547 
+                key={`${selectedZone}-${activeTab}`}
+                onPreview={(url) => setPreviewUrl(url)} 
+                onDelete={handleDeleteById}
+                onReplace={handleReplaceById}
+                onUpload={handleUpload}
+                defaultFiles={
+                  selectedZone && videosPorZona[selectedZone] 
+                  ? videosPorZona[selectedZone]
+                      .filter((v: any) => activeTab === 'left' ? v.categoria === 'precios' : v.categoria === 'publicidad')
+                      .map((v: any) => ({
+                      id: v.id,
+                      name: v.titulo || "Imagen",
+                      size: 0,
+                      type: "image/jpeg",
+                      url: v.cloudinary_url,
+                      uploadedAt: v.created_at
+                    }))
+                  : []
+                }
+              />
+            </ScrollArea>
+          </div>
+
+          <div className="px-6 py-6 border-t shrink-0 flex flex-col gap-2 mt-2">
             <div className="flex gap-2">
               <Button 
                 className="flex-1" 
@@ -794,7 +875,17 @@ export default function ResumenPage() {
             </SheetDescription>
           </SheetHeader>
           <div className="mt-9 flex flex-col items-center gap-4">
-             <ChartRadialText />
+            {(() => {
+              const TIEMPO_LIMITE_MS = 360000;
+              const conectadas = tiendas.filter(t => t.ultima_conexion && (new Date().getTime() - new Date(t.ultima_conexion).getTime() < TIEMPO_LIMITE_MS)).length;
+              const desconectadas = tiendas.length - conectadas;
+              return (
+                <ChartRadialText 
+                  conectadas={conectadas}
+                  desconectadas={desconectadas}
+                />
+              );
+            })()}
           </div>
           <div className="mt-8 pb-20">
             <Table>

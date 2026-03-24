@@ -13,6 +13,8 @@ import { getCiudades, getTiendasPorCiudad, getEstadisticasPorCiudad } from "@/li
 import type { Ciudad, Tienda } from "@/lib/supabase"
 import { AgregarTiendaDialog } from "./agregar-tienda-dialog"
 import { EditarTiendaDialog } from "./editar-tienda-dialog"
+import { AgregarCiudadDialog } from "./agregar-ciudad-dialog"
+import { EditarCiudadDialog } from "./editar-ciudad-dialog"
 import { CiudadesTabla } from "./ciudades-tabla"
 
 const getStatusColor = (activa: boolean) => {
@@ -33,7 +35,9 @@ export function CiudadesDashboard() {
   const [ciudadSeleccionada, setCiudadSeleccionada] = useState<string | null>(null)
   const [ciudadExpandida, setCiudadExpandida] = useState<string | null>(null)
   const [dialogEditarAbierto, setDialogEditarAbierto] = useState(false)
+  const [dialogCiudadAbierto, setDialogCiudadAbierto] = useState(false)
   const [tiendaParaEditar, setTiendaParaEditar] = useState<Tienda | null>(null)
+  const [ciudadParaEditar, setCiudadParaEditar] = useState<Ciudad | null>(null)
   const [vistaActual, setVistaActual] = useState<"grid" | "table">("grid")
 
   useEffect(() => {
@@ -84,6 +88,18 @@ export function CiudadesDashboard() {
     }
     setDialogAbierto(false)
     setCiudadSeleccionada(null)
+  }
+
+  const handleCiudadAgregada = (nuevaCiudad: Ciudad) => {
+    setCiudades((prev) => [...prev, nuevaCiudad].sort((a, b) => a.nombre.localeCompare(b.nombre)))
+    setDialogCiudadAbierto(false)
+  }
+
+  const handleCiudadActualizada = (ciudadActualizada: Ciudad) => {
+    setCiudades((prev) =>
+      prev.map((c) => (c.id === ciudadActualizada.id ? ciudadActualizada : c)).sort((a, b) => a.nombre.localeCompare(b.nombre))
+    )
+    setCiudadParaEditar(null)
   }
 
   const ciudadesFiltradas = ciudades.filter((ciudad) => ciudad.nombre.toLowerCase().includes(filtroTexto.toLowerCase()))
@@ -211,8 +227,12 @@ export function CiudadesDashboard() {
               className="max-w-sm"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Tabs value={vistaActual} onValueChange={(value) => setVistaActual(value as "grid" | "table")}>
+          <div className="flex items-center gap-2 flex-col sm:flex-row w-full md:w-auto mt-2 md:mt-0">
+            <Button onClick={() => setDialogCiudadAbierto(true)} className="w-full sm:w-auto whitespace-nowrap bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva Ciudad
+            </Button>
+            <Tabs value={vistaActual} onValueChange={(value) => setVistaActual(value as "grid" | "table")} className="w-full sm:w-auto">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="grid" className="gap-2">
                   <Grid3X3 className="h-4 w-4" />
@@ -302,7 +322,7 @@ export function CiudadesDashboard() {
                                 <Plus className="mr-2 h-4 w-4 text-primary/70" />
                                 <span className="font-medium">Agregar tienda</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer py-2 text-muted-foreground">
+                              <DropdownMenuItem onClick={() => setCiudadParaEditar(ciudad)} className="cursor-pointer py-2">
                                 <Edit className="mr-2 h-4 w-4" />
                                 <span>Editar ciudad</span>
                               </DropdownMenuItem>
@@ -422,6 +442,16 @@ export function CiudadesDashboard() {
         }}
         tienda={tiendaParaEditar}
         onTiendaActualizada={handleTiendaActualizada}
+      />
+      <AgregarCiudadDialog 
+        abierto={dialogCiudadAbierto}
+        onClose={() => setDialogCiudadAbierto(false)}
+        onCiudadAgregada={handleCiudadAgregada}
+      />
+      <EditarCiudadDialog
+        ciudad={ciudadParaEditar}
+        onClose={() => setCiudadParaEditar(null)}
+        onCiudadActualizada={handleCiudadActualizada}
       />
     </>
   )
