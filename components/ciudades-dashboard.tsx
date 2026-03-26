@@ -16,6 +16,7 @@ import { EditarTiendaDialog } from "./editar-tienda-dialog"
 import { AgregarCiudadDialog } from "./agregar-ciudad-dialog"
 import { EditarCiudadDialog } from "./editar-ciudad-dialog"
 import { CiudadesTabla } from "./ciudades-tabla"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const getStatusColor = (activa: boolean) => {
   return activa ? "bg-green-500" : "bg-gray-500"
@@ -374,7 +375,16 @@ export function CiudadesDashboard() {
                                         <Building className="h-4 w-4 text-blue-500" />
                                       </div>
                                       <div className="flex flex-col">
-                                        <span className="font-semibold text-sm max-w-[130px] truncate leading-tight dark:text-foreground/90">{tienda.nombre}</span>
+                                        <TooltipProvider delayDuration={300}>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="font-semibold text-sm max-w-[130px] truncate leading-tight dark:text-foreground/90 cursor-default">{tienda.nombre}</span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="max-w-[240px] text-xs font-medium">
+                                              {tienda.nombre}
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
                                         <span className="text-[10px] text-muted-foreground font-mono mt-0.5">{tienda.codigo}</span>
                                       </div>
                                     </div>

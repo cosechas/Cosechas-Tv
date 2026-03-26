@@ -31,6 +31,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ApkDownloadCard } from "@/components/apk-download-card"
 
 const data = {
   user: {
@@ -63,32 +64,20 @@ const data = {
         },
         {
           title: "Imagenes",
-          url: "#",
+          url: "/contenido/imagenes",
         },
         {
           title: "Subir contenido",
           url: "/upload",
         },
+                {
+          title: "Duraciones",
+          url: "/configuracion/duraciones",
+        },
       ],
     },
-    { title: "Pantallas",
-    url: "#",
-    icon: Tv,
-    items: [
-      {
-        title: "Duraciones",
-        url: "/configuracion/duraciones",
-      },
-      {
-        title: "Estado General",
-        url: "#",
-      },
-      {
-        title: "Configuracion",
-        url: "#",
-      },
-    ],
-  },
+
+
     {
       title: "Grupos",
       url: "#",
@@ -101,6 +90,22 @@ const data = {
         {
           title: "Tiendas",
           url: "/grupos/tiendas",
+        },
+        
+      ],
+    },
+    {
+      title: "Manuales",
+      url: "#",
+      icon: BookOpen,
+      items: [
+        {
+          title: "Manual de usuario",
+          url: "/manuales/usuario",
+        },
+        {
+          title: "Manual de administrador",
+          url: "/manuales/administrador",
         },
       ],
     },
@@ -117,23 +122,7 @@ const data = {
       icon: Send,
     },
   ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
+ 
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -156,15 +145,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <ScrollArea className="flex-1">
-          <div className="space-y-2">
+      <SidebarContent className="overflow-hidden">
+        <ScrollArea className="h-full w-full">
+          <div className="space-y-2 py-2">
             <NavMain items={data.navMain} />
-            <NavProjects projects={data.projects} />
           </div>
         </ScrollArea>
       </SidebarContent>
       <SidebarFooter>
+        <ApkDownloadCard />
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

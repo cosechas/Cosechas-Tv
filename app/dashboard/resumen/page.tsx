@@ -447,49 +447,7 @@ export default function ResumenPage() {
         <ScrollArea className="flex-1">
           <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           {/* Cloudinary Status Cards */}
-          <div className="grid gap-4 md:grid-cols-2">
-             <Card className="shadow-none">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Estado de Cloudinary</CardTitle>
-                <CardDescription>Verifica la conexión con Cloudinary</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span>Credenciales configuradas</span>
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/cloudinary/validate">
-                      Verificar conexión
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
 
-            <Card className="shadow-none">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Prueba de Subida</CardTitle>
-                <CardDescription>Prueba la subida de archivos a Cloudinary</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-amber-500" />
-                    <span>Pendiente de verificación</span>
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/cloudinary/test-upload">
-                      Probar subida
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-4">
@@ -715,6 +673,13 @@ export default function ResumenPage() {
                            {duracionesConfig[video.categoria] ? `${duracionesConfig[video.categoria]} s` : "-"}
                          </Badge>
                        </div>
+                       {/* Gradient fade at bottom — prevents white images from blending */}
+                       <div
+                         className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none z-[5]"
+                         style={{
+                           background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.13))",
+                         }}
+                       />
                     </div>
                     <CardHeader className="pb-2">
                       <div className="flex flex-col gap-2">

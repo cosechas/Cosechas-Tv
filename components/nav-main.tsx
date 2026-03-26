@@ -27,6 +27,7 @@ const implementedRoutes = [
   "/configuracion/general",
   "/configuracion/duraciones",
   "/upload",
+  "/contenido/imagenes",
   "/test-conexion",
   "/debug",
   "/diagnostico",
@@ -83,7 +84,7 @@ export function NavMain({
         <SidebarGroupLabel>Platform</SidebarGroupLabel>
         <SidebarMenu>
           {items.map((item) => (
-            <Collapsible key={item.title} asChild defaultOpen={item.isActive} className="group/collapsible">
+            <Collapsible key={item.title} asChild defaultOpen={item.title !== "Manuales"} className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
                   <SidebarMenuButton 

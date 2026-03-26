@@ -68,7 +68,7 @@ export function NavUser() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="h-8 w-8 rounded-lg overflow-hidden flex items-center justify-center bg-muted">
+              <div className="h-8 w-8 rounded-sm overflow-hidden flex items-center justify-center bg-muted">
                 <BoringAvatar
                   size={32}
                   name={user.email || user.name}
@@ -92,7 +92,7 @@ export function NavUser() {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <div className="h-8 w-8 rounded-lg overflow-hidden flex items-center justify-center bg-muted">
+                <div className="h-8 w-8 rounded-sm overflow-hidden flex items-center justify-center bg-muted">
                   <BoringAvatar
                     size={32}
                     name={user.email || user.name}

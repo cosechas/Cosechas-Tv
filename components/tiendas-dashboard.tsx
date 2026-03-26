@@ -393,19 +393,34 @@ export function TiendasDashboard() {
             {/* Botón Exportar antes de Agregar Tienda */}
             <Button variant="outline" onClick={() => {
               // Prepara los datos para exportar
-              const data = tiendasFiltradas.map((t) => ({
-                Nombre: t.nombre,
-                Código: t.codigo,
-                Tipo: t.tipo_tienda,
-                "Razón social": t.razon_social || "",
-                "NIT/C.C": t.nit_cc || "",
-                Ciudad: t.ciudades?.nombre || "",
-                Teléfono: t.telefono || "",
-                Correo: t.email || "",
-                Pantallas: t.pantallas_conectadas,
-                Estado: t.activa ? "Activa" : "Inactiva",
-                "Fecha Creación": new Date(t.created_at).toLocaleDateString(),
-              }));
+              const TIEMPO_LIMITE_MS = 360000; // 6 minutos
+              const data = tiendasFiltradas.map((t) => {
+                const online = t.ultima_conexion
+                  ? new Date().getTime() - new Date(t.ultima_conexion).getTime() < TIEMPO_LIMITE_MS
+                  : false;
+                const ultimaConexionFormato = t.ultima_conexion
+                  ? new Date(t.ultima_conexion).toLocaleString("es-CO", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Sin registro";
+                return {
+                  Nombre: t.nombre,
+                  Código: t.codigo,
+                  Tipo: t.tipo_tienda,
+                  "Razón social": t.razon_social || "",
+                  "NIT/C.C": t.nit_cc || "",
+                  Ciudad: t.ciudades?.nombre || "",
+                  "Estado Conexión": online ? "En línea" : "Desconectada",
+                  "Última Conexión": ultimaConexionFormato,
+                  Pantallas: t.pantallas_conectadas,
+                  Estado: t.activa ? "Activa" : "Inactiva",
+                  "Fecha Creación": new Date(t.created_at).toLocaleDateString(),
+                };
+              });
               const XLSX = require("xlsx");
               const ws = XLSX.utils.json_to_sheet(data);
               const wb = XLSX.utils.book_new();

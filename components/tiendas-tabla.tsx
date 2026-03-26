@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu" 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { eliminarTienda, registrarActividad } from "@/lib/database"
 import type { Tienda } from "@/lib/supabase"
 import { EditarTiendaDialog } from "./editar-tienda-dialog"
@@ -213,7 +214,16 @@ export function TiendasTabla({ tiendas, onTiendaActualizada, onTiendaEliminada }
 
                   {/* Nombre */}
                   <TableCell>
-                    <span className="font-semibold text-foreground text-sm max-w-[160px] truncate block">{tienda.nombre}</span>
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="font-semibold text-foreground text-sm max-w-[160px] truncate block cursor-default">{tienda.nombre}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[280px] text-xs font-medium">
+                          {tienda.nombre}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
 
                   {/* Código */}

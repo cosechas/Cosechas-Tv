@@ -18,13 +18,28 @@ interface ComingSoonDialogProps {
 }
 
 export function ComingSoonDialog({ isOpen, onClose, featureName }: ComingSoonDialogProps) {
+  const isManual = featureName.toLowerCase().includes("manual")
+
+  const title = isManual ? "Pendiente de Aprobación" : "Función en desarrollo"
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Función en desarrollo</AlertDialogTitle>
-          <AlertDialogDescription>
-            La función <strong>{featureName}</strong> estará disponible en la versión 2.0. Estamos trabajando para traerte las mejores funcionalidades.
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-sm leading-relaxed mt-2 text-muted-foreground/90">
+            {isManual ? (
+              <>
+                El documento <strong>{featureName}</strong> ya se encuentra redactado e implementado en el sistema. 
+                <br /><br />
+                Se habilitará su acceso a todos los usuarios una vez que <strong>Gerencia confirme la aprobación definitiva</strong> de sus lineamientos de uso.
+              </>
+            ) : (
+              <>
+                La función <strong>{featureName}</strong> estará disponible de forma nativa en la versión 2.0. 
+                Estamos finalizando los flujos para traerte la mejor experiencia.
+              </>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
