@@ -47,7 +47,7 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "motion/react"
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { getCiudades, getTiendasPorCiudad } from "@/lib/database"
 import { Tienda } from "@/lib/supabase"
@@ -166,6 +166,8 @@ export default function ResumenPage() {
   const [avatarSheetZoneId, setAvatarSheetZoneId] = useState<string | null>(null);
   const [tiendas, setTiendas] = useState<Tienda[]>([]);
   const [isRotating, setIsRotating] = useState(false);
+  const hasOpenedSheetRef = useRef(false);
+
 
   useEffect(() => {
     if (avatarSheetZoneId) {
@@ -281,6 +283,29 @@ export default function ResumenPage() {
 
   const videosPorZona = groupByZona(filteredVideos);
   const zonas = Object.keys(videosPorZona);
+
+  // Abrir auto sheet basado en comando por URL (Ejemplo: ?openZone=FIRST)
+  useEffect(() => {
+    if (zonas.length > 0 && !hasOpenedSheetRef.current) {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const zoneToOpen = params.get("openZone");
+        
+        if (zoneToOpen === "FIRST") {
+          setSelectedZone(zonas[0]);
+          hasOpenedSheetRef.current = true;
+          // Limpia la URL para que no interfiera en la recarga
+          window.history.replaceState({}, '', window.location.pathname);
+        } else if (zoneToOpen && zonas.includes(zoneToOpen)) {
+          setSelectedZone(zoneToOpen);
+          hasOpenedSheetRef.current = true;
+          window.history.replaceState({}, '', window.location.pathname);
+        } else if (zoneToOpen && !loading) {
+          hasOpenedSheetRef.current = true; // no repetir inútilmente si no se halló
+        }
+      }
+    }
+  }, [zonas, loading]);
 
   useEffect(() => {
     if (zonas.length === 0 || videos.length === 0) return;

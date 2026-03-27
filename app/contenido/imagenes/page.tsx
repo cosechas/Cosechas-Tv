@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { Search, CloudUpload, Download, Trash2, Eye, Filter, ImageIcon } from "lucide-react"
+import { Search, CloudUpload, Download, Trash2, Eye, Filter, ImageIcon, RefreshCw, Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useState, useMemo, useCallback, useRef } from "react"
@@ -66,6 +66,7 @@ export default function ImagenesPage() {
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [ciudadesMap, setCiudadesMap]   = useState<Record<string, string>>({})
   const [deletingId, setDeletingId]     = useState<string | null>(null)
+  const [replacingId, setReplacingId]   = useState<string | null>(null)
   const [imageToDelete, setImageToDelete] = useState<ImageItem | null>(null)
   const [previewImage, setPreviewImage] = useState<ImageItem | null>(null)
   const [fileSizes, setFileSizes]       = useState<Record<string, number>>({})
@@ -130,6 +131,46 @@ export default function ImagenesPage() {
     setDeletingId(null)
     setImageToDelete(null)
   }, [])
+
+  const handleReplace = useCallback(async (img: ImageItem, file: File) => {
+    setReplacingId(img.id)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("id", img.id)
+      formData.append("grupo_id", img.grupo_id || "")
+      formData.append("oldPublicId", img.cloudinary_public_id || "")
+
+      const res = await fetch("/api/contenidos/replace", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "Error al reemplazar")
+      }
+
+      const { content: updatedContent } = await res.json()
+
+      // Actualizar estado local
+      setImagenes(prev => prev.map(i => i.id === img.id ? { ...i, ...updatedContent } : i))
+      
+      // Invalidar cache de tamaño del file local, así lo vuelve a pedir
+      setFileSizes(prev => {
+        const next = { ...prev }
+        delete next[img.id]
+        return next
+      })
+
+      toast.success("Imagen reemplazada exitosamente")
+    } catch (error: any) {
+      toast.error("Error al reemplazar: " + error.message)
+    } finally {
+      setReplacingId(null)
+    }
+  }, [])
+
 
   return (
     <SidebarProvider>
@@ -223,9 +264,10 @@ export default function ImagenesPage() {
                 {filteredImagenes.map(img => (
                   <ImageCard
                     key={img.id} img={img} resolvedSize={resolveSize(img)}
-                    ciudadesMap={ciudadesMap} deletingId={deletingId}
+                    ciudadesMap={ciudadesMap} deletingId={deletingId} replacingId={replacingId}
                     imageToDelete={imageToDelete} setImageToDelete={setImageToDelete}
                     onPreview={() => setPreviewImage(img)} onDelete={handleDelete}
+                    onReplace={handleReplace}
                   />
                 ))}
               </div>
@@ -271,12 +313,12 @@ export default function ImagenesPage() {
 // ── Image Card ──────────────────────────────────────────────────
 interface ImageCardProps {
   img: ImageItem; resolvedSize?: number; ciudadesMap: Record<string, string>
-  deletingId: string | null; imageToDelete: ImageItem | null
+  deletingId: string | null; replacingId: string | null; imageToDelete: ImageItem | null
   setImageToDelete: (img: ImageItem | null) => void
-  onPreview: () => void; onDelete: (img: ImageItem) => void
+  onPreview: () => void; onDelete: (img: ImageItem) => void; onReplace: (img: ImageItem, file: File) => void
 }
 
-function ImageCard({ img, resolvedSize, ciudadesMap, deletingId, imageToDelete, setImageToDelete, onPreview, onDelete }: ImageCardProps) {
+function ImageCard({ img, resolvedSize, ciudadesMap, deletingId, replacingId, imageToDelete, setImageToDelete, onPreview, onDelete, onReplace }: ImageCardProps) {
   const regionName = img.grupo_id ? (ciudadesMap[img.grupo_id] || "") : ""
   return (
     <div className="group rounded-xl border-0 bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -293,6 +335,24 @@ function ImageCard({ img, resolvedSize, ciudadesMap, deletingId, imageToDelete, 
             className="rounded-full bg-white/90 p-2 text-foreground hover:bg-white transition-colors" title="Descargar">
             <Download className="h-4 w-4" />
           </a>
+          <input 
+            type="file" accept="image/*" className="hidden" 
+            id={`replace-input-${img.id}`}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onReplace(img, file);
+              e.target.value = '';
+            }} 
+          />
+          <button 
+            disabled={replacingId === img.id}
+            onClick={e => { e.stopPropagation(); document.getElementById(`replace-input-${img.id}`)?.click(); }} 
+            className="rounded-full bg-white/90 p-2 text-foreground hover:bg-white transition-colors disabled:opacity-50" 
+            title="Reemplazar imagen"
+          >
+            {replacingId === img.id ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <RefreshCw className="h-4 w-4" />}
+          </button>
           <button onClick={e => { e.stopPropagation(); setImageToDelete(img) }} className="rounded-full bg-white/90 p-2 text-red-600 hover:bg-white transition-colors" title="Eliminar">
             <Trash2 className="h-4 w-4" />
           </button>
