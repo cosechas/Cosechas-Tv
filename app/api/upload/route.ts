@@ -1,135 +1,126 @@
 import { NextResponse } from "next/server"
-import { v2 as cloudinary } from "cloudinary"
 import { supabase } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
 import { getCiudades } from "@/lib/database"
-import { createClient } from '@supabase/supabase-js'
-
-// Configuración de Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-})
 
 export async function POST(request: Request) {
   try {
-    // Obtener el token del header Authorization
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.split(' ')[1]
+    const authHeader = request.headers.get("authorization")
+    const token = authHeader?.split(" ")[1]
     let user_id = null
     if (token) {
-      // Crear un cliente temporal de Supabase para decodificar el token
       const supa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-        global: { headers: { Authorization: `Bearer ${token}` } }
+        global: { headers: { Authorization: `Bearer ${token}` } },
       })
-      const { data: { user } } = await supa.auth.getUser(token)
+      const {
+        data: { user },
+      } = await supa.auth.getUser(token)
       user_id = user?.id || null
     }
+
     const formData = await request.formData()
-    // Cambios para múltiples archivos
     const files = formData.getAll("files") as File[]
     const title = formData.get("title") as string
     const category = formData.get("category") as string
-    const groupType = formData.get("groupType") as string // 'ciudad' o 'tienda'
+    const groupType = formData.get("groupType") as string // 'zona' o 'tienda'
     const groupId = formData.get("groupId") as string // ID de la ciudad o tienda
     const description = formData.get("description") as string
 
-    if (!files.length) {
-      return NextResponse.json({ error: "No se ha proporcionado ningún archivo" }, { status: 400 })
+    if (!files.length || !groupId) {
+      return NextResponse.json({ error: "No se proporcionaron archivos o falta el ID de zona" }, { status: 400 })
     }
 
-    // Obtener el nombre real de la zona/ciudad
-    let nombreZona = groupId;
-    try {
-      const ciudades = await getCiudades();
-      const ciudad = ciudades.find((c) => c.id === groupId);
-      if (ciudad) {
-        nombreZona = ciudad.nombre.replace(/\//g, "-"); // Evitar problemas con / en nombres
-      }
-    } catch (e) {
-      // Si falla, usa el id
-    }
+    // Crear cliente administrativo para subir a Storage e insertar en DB bypass RLS
+    const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
     // Procesar todos los archivos
-    const stream = require("stream")
-    const results = await Promise.all(files.map(async (file, idx) => {
-      try {
-        const bytes = await file.arrayBuffer()
-        const buffer = Buffer.from(bytes)
-        const readableStream = new stream.PassThrough()
-        readableStream.end(buffer)
-        // Subir a Cloudinary usando streams
-        const uploadResult = await new Promise((resolve, reject) => {
-          const uploadStream = cloudinary.uploader.upload_stream(
-            {
-              resource_type: file.type.startsWith("video/") ? "video" : "image",
-              folder: `retail-cosechas/Zonas/${nombreZona}`,
-              public_id: `${Date.now()}-${title.replace(/\s+/g, "-").toLowerCase()}-${idx}`,
-              tags: [category, groupType, groupId],
-            },
-            (error, result) => {
-              if (error) return reject(error)
-              resolve(result)
+    const results = await Promise.all(
+      files.map(async (file, idx) => {
+        try {
+          const bytes = await file.arrayBuffer()
+          const buffer = Buffer.from(bytes)
+
+          const cleanFileName = file.name.replace(/\s+/g, "-").toLowerCase()
+          const timestamp = Date.now()
+          const filePath = `${groupId}/${timestamp}-${cleanFileName}`
+
+          // Subir a Supabase Storage (Bucket: 'contenidos')
+          const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+            .from("contenidos")
+            .upload(filePath, buffer, {
+              contentType: file.type,
+              upsert: false,
+            })
+
+          if (uploadError) {
+            console.error("Error subiendo a Storage:", uploadError)
+            return {
+              error: `Error de almacenamiento: ${uploadError.message}`,
+              fileName: file.name,
+              success: false,
             }
-          )
-          readableStream.pipe(uploadStream)
-        })
-        // Guardar en la base de datos Supabase
-        const categoriaFinal = category || 'informativo';
-        const { data, error: dbError } = await supabase.from("contenidos").insert([
-          {
-            titulo: title,
-            descripcion: description || null,
-            categoria: categoriaFinal,
-            estado: "activo",
-            cloudinary_public_id: uploadResult.public_id,
-            cloudinary_url: uploadResult.secure_url,
-            formato: uploadResult.format,
-            duracion: uploadResult.duration || null,
-            grupo_tipo: groupType,
-            grupo_id: groupId,
-            user_id: user_id,
-          },
-        ])
-        if (dbError) {
+          }
+
+          // Obtener la URL pública
+          const {
+            data: { publicUrl },
+          } = supabaseAdmin.storage.from("contenidos").getPublicUrl(filePath)
+
+          // Guardar en la base de datos Supabase
+          const categoriaFinal = category || "informativo"
+          const { data, error: dbError } = await supabaseAdmin.from("contenidos").insert([
+            {
+              titulo: title,
+              descripcion: description || null,
+              categoria: categoriaFinal,
+              estado: "activo",
+              cloudinary_public_id: filePath, // Guardamos el path del storage aquí por compatibilidad
+              cloudinary_url: publicUrl, // Guardamos la URL pública aquí por compatibilidad
+              formato: file.type.split("/")[1] || "unknown",
+              grupo_id: groupId,
+              user_id: user_id,
+            },
+          ])
+
+          if (dbError) {
+            console.error("Error al insertar en Supabase:", dbError)
+            // Limpiar el archivo subido si falla el registro en la DB
+            await supabaseAdmin.storage.from("contenidos").remove([filePath])
+            return {
+              error: "Archivo subido a Storage pero fallo el registro en la base de datos",
+              dbError: dbError.message,
+              fileName: file.name,
+              success: false,
+            }
+          }
+
           return {
-            error: "Archivo subido pero error al guardar en la base de datos",
-            dbError: dbError.message,
-            url: uploadResult.secure_url,
+            success: true,
+            url: publicUrl,
+            filePath: filePath,
             fileName: file.name,
-            success: false
+          }
+        } catch (error: any) {
+          console.error("Error en el loop de subida:", error)
+          return {
+            error: error.message || "Error al subir archivo",
+            fileName: file.name,
+            success: false,
           }
         }
-        return {
-          success: true,
-          url: uploadResult.secure_url,
-          publicId: uploadResult.public_id,
-          format: uploadResult.format,
-          resource_type: uploadResult.resource_type,
-          width: uploadResult.width,
-          height: uploadResult.height,
-          duration: uploadResult.duration,
-          db: data,
-          fileName: file.name
-        }
-      } catch (error) {
-        return {
-          error: error.message || "Error al subir archivo",
-          fileName: file.name,
-          success: false
-        }
-      }
-    }))
-    // Respuesta con todos los resultados
-    return NextResponse.json({ success: true, results })
-  } catch (error) {
-    console.error("Error al subir archivo:", error)
-    return NextResponse.json({ error: "Error al procesar la solicitud" }, { status: 500 })
-  }
-}
+      }),
+    )
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
+    const someSuccessful = results.some((r) => r.success)
+    const allSuccessful = results.every((r) => r.success)
+
+    return NextResponse.json({
+      success: someSuccessful,
+      allSuccessful,
+      results,
+    })
+  } catch (error: any) {
+    console.error("Error general en API upload:", error)
+    return NextResponse.json({ error: error.message || "Error al procesar la solicitud" }, { status: 500 })
+  }
 }

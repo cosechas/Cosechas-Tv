@@ -400,7 +400,6 @@ export async function getEstadisticasPorCiudad() {
     const { data: ciudades, error: ciudadesError } = await supabase
       .from("ciudades")
       .select("id, nombre, codigo")
-      .eq("activa", true)
 
     if (ciudadesError) throw ciudadesError
 
@@ -408,7 +407,6 @@ export async function getEstadisticasPorCiudad() {
     const { data: tiendas, error: tiendasError } = await supabase
       .from("tiendas")
       .select("id, ciudad_id, pantallas_conectadas")
-      .eq("activa", true)
 
     if (tiendasError) throw tiendasError
 

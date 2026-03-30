@@ -133,12 +133,23 @@ export function UploadForm() {
       const result = await response.json()
       if (response.ok && result.success) {
         setProgress(100)
-        setUploadStatus("success")
-        toast("¡Contenido subido! 🥳", {
-          description: "Los archivos se han subido exitosamente y ya están disponibles.",
-          duration: 6000
-        });
-        setMessage("")
+        
+        if (result.allSuccessful) {
+          setUploadStatus("success")
+          toast("¡Contenido subido! 🥳", {
+            description: "Todos los archivos se han subido exitosamente.",
+            duration: 6000
+          });
+          setMessage("")
+        } else {
+          setUploadStatus("error")
+          const errorFiles = result.results.filter((r: any) => !r.success).map((r: any) => r.fileName).join(", ")
+          setMessage(`Se subieron algunos archivos, pero otros fallaron al guardarse: ${errorFiles}`)
+          toast("Subida parcial ⚠️", {
+            description: "Algunos archivos no se pudieron guardar en la base de datos.",
+            duration: 6000
+          });
+        }
         setFiles([])
         setPreviews([])
         setTitle("")

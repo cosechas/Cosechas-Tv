@@ -13,7 +13,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { error } = await supabase
+    // Obtener la ciudad actual y versión de la tienda para sincronización
+    const { data: tienda, error: fetchError } = await supabase
+      .from('tiendas')
+      .select('ciudad_id, updated_at')
+      .eq('id', tienda_id)
+      .single()
+
+    if (fetchError) {
+      console.error('Error al obtener datos de tienda para heartbeat:', fetchError)
+    }
+
+    const { error: updateError } = await supabase
       .from('tiendas')
       .update({ 
         ultima_conexion: new Date().toISOString(),
@@ -21,15 +32,19 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', tienda_id)
 
-    if (error) {
-      console.error('Error al actualizar heartbeat:', error)
+    if (updateError) {
+      console.error('Error al actualizar heartbeat:', updateError)
       return NextResponse.json(
         { error: 'Error al actualizar estado' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      ciudad_id: tienda?.ciudad_id,
+      sync_version: tienda?.updated_at || new Date().toISOString()
+    })
   } catch (error) {
     console.error('Error en heartbeat:', error)
     return NextResponse.json(

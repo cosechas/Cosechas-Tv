@@ -619,6 +619,63 @@ export function ImagePlayer() {
     }
   }, [imagesLoaded, connectionChecked])
 
+  const forceMasterRefresh = async (newZona: string, syncVersion: string) => {
+    console.log(`[SYNC] Iniciando Refresco Maestro... Zona=${newZona}, Versión=${syncVersion}`);
+    
+    // 1. Limpiar localStorage de imágenes y metadatos
+    try {
+      localStorage.removeItem(imagenesCacheKey);
+      localStorage.setItem('last_sync_version', syncVersion);
+      
+      const rawTienda = localStorage.getItem('selectedTienda');
+      if (rawTienda) {
+        const tienda = JSON.parse(rawTienda);
+        const updatedTienda = { ...tienda, ciudad_id: newZona, zona_id: newZona };
+        localStorage.setItem('selectedTienda', JSON.stringify(updatedTienda));
+      }
+      localStorage.setItem('selectedZone', newZona);
+      console.log('[SYNC] LocalStorage actualizado');
+    } catch (e) {
+      console.error('[SYNC] Error en localStorage:', e);
+    }
+
+    // 2. Desregistrar Service Workers (sin tocar sw.js)
+    if ('serviceWorker' in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+          console.log('[SYNC] Service Worker desregistrado');
+        }
+      } catch (e) {
+        console.error('[SYNC] Error en SW:', e);
+      }
+    }
+
+    // 3. Borrar Caches físicos de la API y del Navegador
+    if ('caches' in window) {
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(name => {
+            console.log(`[SYNC] Borrando cache: ${name}`);
+            return caches.delete(name);
+          })
+        );
+      } catch (e) {
+        console.error('[SYNC] Error en caches:', e);
+      }
+    }
+
+    // 4. Redirigir con Bust-Cache (evita cache de red del navegador)
+    const newParams = new URLSearchParams(window.location.search);
+    newParams.set('zona', newZona);
+    newParams.set('t', new Date().getTime().toString());
+    
+    console.log('[SYNC] Reiniciando con parámetros limpios...');
+    window.location.search = newParams.toString();
+  };
+
   useEffect(() => {
     const sendHeartbeat = async () => {
       if (!isOnline) return
@@ -630,7 +687,7 @@ export function ImagePlayer() {
         const tienda = JSON.parse(rawTienda)
         if (!tienda?.id) return
 
-        await fetch('/api/heartbeat', {
+        const response = await fetch('/api/heartbeat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -641,8 +698,23 @@ export function ImagePlayer() {
             is_online: true
           }),
         })
+
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Sincronización automática de ciudad/zona y versión de contenido
+          const lastSyncVersion = localStorage.getItem('last_sync_version')
+          
+          const hayCambioCiudad = data.ciudad_id && data.ciudad_id !== zona
+          const hayNuevaVersion = data.sync_version && data.sync_version !== lastSyncVersion
+
+          if (hayCambioCiudad || hayNuevaVersion) {
+            console.log(`[SYNC] Cambio detectado: Ciudad=${hayCambioCiudad}, Versión=${hayNuevaVersion}`)
+            await forceMasterRefresh(data.ciudad_id || (zona as string), data.sync_version)
+          }
+        }
       } catch (error) {
-        console.error('Error sending heartbeat:', error)
+        console.error('Error sending heartbeat or syncing:', error)
       }
     }
 
