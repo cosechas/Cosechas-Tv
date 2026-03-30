@@ -12,7 +12,7 @@ interface TokenVerificationModalProps {
   onVerified: () => void
 }
 
-const EMAIL = "auxsistemascosechas02@gmail.com"
+const EMAIL = "sistemas@cosechasexpress.com"
 
 export function TokenVerificationModal({ open, onClose, onVerified }: TokenVerificationModalProps) {
   const [token, setToken] = useState("")
