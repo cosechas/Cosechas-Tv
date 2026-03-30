@@ -350,9 +350,14 @@ export default function ResumenPage() {
   };
 
   const handleReplaceById = async (id: string, file: File) => {
+    const video = videos.find(v => v.id === id);
+    if (!video) throw new Error("Video no encontrado");
+
     const formData = new FormData();
     formData.append("id", id);
     formData.append("file", file);
+    formData.append("grupo_id", video.grupo_id);
+    formData.append("oldPublicId", video.cloudinary_public_id || "");
 
     try {
       const res = await fetch("/api/contenidos/replace", {
